@@ -10,20 +10,31 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Directories (safe for both Windows and Linux / Vercel case sensitivity)
+const osDir = path.join(__dirname, 'os');
+const aimlDir = path.join(__dirname, 'aiml');
+const dbmsDir = path.join(__dirname, 'dbms');
+const dsaDir = fs.existsSync(path.join(__dirname, 'dsa', 'files'))
+    ? path.join(__dirname, 'dsa', 'files')
+    : path.join(__dirname, 'DSA', 'files');
+const dmsmDir = path.join(__dirname, 'dmsm', 'public');
+
 // Static file directories
-app.use('/files/aiml', express.static(path.join(__dirname, 'aiml')));
-app.use('/files/dbms', express.static(path.join(__dirname, 'dbms')));
-app.use('/files/dsa', express.static(path.join(__dirname, 'DSA', 'files')));
-app.use('/files/dmsm', express.static(path.join(__dirname, 'dmsm', 'public')));
+app.use('/files/os', express.static(osDir));
+app.use('/files/aiml', express.static(aimlDir));
+app.use('/files/dbms', express.static(dbmsDir));
+app.use('/files/dsa', express.static(dsaDir));
+app.use('/files/dmsm', express.static(dmsmDir));
 
 // Universal foolproof PDF delivery endpoint
 app.get('/pdf/:subject/:file', (req, res) => {
     const { subject, file } = req.params;
     let safeDir = '';
 
-    if (subject === 'aiml') safeDir = path.join(__dirname, 'aiml');
-    else if (subject === 'dbms') safeDir = path.join(__dirname, 'dbms');
-    else if (subject === 'dsa') safeDir = path.join(__dirname, 'DSA', 'files');
+    if (subject === 'os') safeDir = osDir;
+    else if (subject === 'aiml') safeDir = aimlDir;
+    else if (subject === 'dbms') safeDir = dbmsDir;
+    else if (subject === 'dsa') safeDir = dsaDir;
     else return res.status(404).send('Subject not found');
 
     const cleanFilename = path.basename(file);
@@ -40,18 +51,23 @@ app.get('/pdf/:subject/:file', (req, res) => {
 
 // Backward-compatible routes
 app.get('/view-pdf', (req, res) => {
-    const pdfPath = path.join(__dirname, 'dbms', 'dbms.pdf');
+    const pdfPath = fs.existsSync(path.join(dbmsDir, 'DBMS.pdf'))
+        ? path.join(dbmsDir, 'DBMS.pdf')
+        : path.join(dbmsDir, 'dbms.pdf');
     if (fs.existsSync(pdfPath)) {
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline; filename="dbms.pdf"');
+        res.setHeader('Content-Disposition', 'inline; filename="DBMS.pdf"');
         res.sendFile(pdfPath);
     } else {
-        res.status(404).send('dbms.pdf not found in dbms folder');
+        res.status(404).send('DBMS.pdf not found in dbms folder');
     }
 });
 
 app.get('/view-md', (req, res) => {
-    const filePath = path.join(__dirname, 'dbms', 'dbms.md');
+    const filePath = fs.existsSync(path.join(dbmsDir, 'DBMS.md'))
+        ? path.join(dbmsDir, 'DBMS.md')
+        : path.join(dbmsDir, 'dbms.md');
+
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading DBMS markdown file');
 
@@ -101,7 +117,7 @@ app.get('/view-md', (req, res) => {
                 </head>
                 <body class="p-4 sm:p-6 text-slate-800">
                     <div class="max-w-4xl mx-auto mb-4 flex items-center justify-between">
-                        <a href="/?index=1" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 text-xs font-semibold shadow-sm transition-all">
+                        <a href="/?index=2" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 text-xs font-semibold shadow-sm transition-all">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                             Back to Dashboard
                         </a>
@@ -140,18 +156,183 @@ app.get('/view-md', (req, res) => {
     });
 });
 
-// API endpoint to retrieve python code
-app.get('/api/code/:filename', (req, res) => {
-    const filename = path.basename(req.params.filename);
-    const filePath = path.join(__dirname, 'DSA', 'files', filename);
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'File not found' });
-    }
-    const content = fs.readFileSync(filePath, 'utf8');
-    res.json({ filename, content });
-});
+// ==========================================
+// DATASETS: OS (0), AIML (1), DBMS (2), DM&SM (3), DSA (4)
+// ==========================================
 
-// DM&SM experiments dataset
+// 0. OS Practicals Dataset (Index 0)
+const osPracticals = [
+    {
+        id: 1,
+        title: "Shell Scripting: Student Database Management System",
+        category: "Shell Scripting",
+        language: "Bash / Shell",
+        desc: "Interactive menu-driven shell script for student database with create, insert, search, display, modify, and delete operations using sed and grep.",
+        files: [
+            {
+                name: "exp1.sh",
+                label: "Shell Script (.sh)",
+                badge: "Bash",
+                badgeColor: "amber",
+                cmd: "bash exp1.sh",
+                id: "1",
+                curlPath: "os/1"
+            }
+        ]
+    },
+    {
+        id: 2,
+        title: "Process Creation & Execution Control (fork, wait, getpid)",
+        category: "Process Control",
+        language: "C",
+        desc: "Demonstrates process creation with fork(), synchronization with wait(), and sorting execution in parent and child processes with PID tracking.",
+        files: [
+            {
+                name: "exp2.c",
+                label: "C Source (.c)",
+                badge: "C",
+                badgeColor: "blue",
+                cmd: "gcc exp2.c -o exp2 && ./exp2",
+                id: "2",
+                curlPath: "os/2"
+            }
+        ]
+    },
+    {
+        id: 3,
+        title: "Producer-Consumer Problem (Semaphores & Mutex)",
+        category: "Process Synchronization",
+        language: "C / POSIX",
+        desc: "Classic process synchronization problem solving bounded-buffer producer-consumer race conditions using sem_wait, sem_post, and pthread_mutex.",
+        files: [
+            {
+                name: "exp3.c",
+                label: "C Source (.c)",
+                badge: "C Threads",
+                badgeColor: "indigo",
+                cmd: "gcc exp3.c -o exp3 -pthread && ./exp3",
+                id: "3",
+                curlPath: "os/3"
+            }
+        ]
+    },
+    {
+        id: 4,
+        title: "Dining Philosophers Problem using Semaphores",
+        category: "Deadlock & Synchronization",
+        language: "C / POSIX",
+        desc: "Simulation of five philosophers thinking and eating with shared forks using semaphore-based mutual exclusion to avoid deadlock and starvation.",
+        files: [
+            {
+                name: "exp4.c",
+                label: "C Source (.c)",
+                badge: "C Threads",
+                badgeColor: "indigo",
+                cmd: "gcc exp4.c -o exp4 -pthread && ./exp4",
+                id: "4",
+                curlPath: "os/4"
+            }
+        ]
+    },
+    {
+        id: 5,
+        title: "Banker's Algorithm for Deadlock Avoidance",
+        category: "Deadlock Avoidance",
+        language: "C",
+        desc: "Implements Dijkstra's Banker's algorithm to analyze allocation, max, need, and available vectors/matrices, calculating safe execution sequences.",
+        files: [
+            {
+                name: "exp5.c",
+                label: "C Source (.c)",
+                badge: "C",
+                badgeColor: "blue",
+                cmd: "gcc exp5.c -o exp5 && ./exp5",
+                id: "5",
+                curlPath: "os/5"
+            }
+        ]
+    },
+    {
+        id: 6,
+        title: "Inter-Process Communication using Named Pipes (FIFO)",
+        category: "IPC - FIFO / Named Pipes",
+        language: "C",
+        desc: "Two-way communication between unrelated processes using POSIX FIFOs (mkfifo). Server sends a message; client analyzes lines, words, and characters and sends back statistics.",
+        files: [
+            {
+                name: "exp6_server.c",
+                label: "Server Process (.c)",
+                badge: "Server",
+                badgeColor: "emerald",
+                cmd: "gcc exp6_server.c -o exp6_server && ./exp6_server",
+                id: "6s",
+                curlPath: "os/6s"
+            },
+            {
+                name: "exp6_client.c",
+                label: "Client Process (.c)",
+                badge: "Client",
+                badgeColor: "cyan",
+                cmd: "gcc exp6_client.c -o exp6_client && ./exp6_client",
+                id: "6c",
+                curlPath: "os/6c"
+            }
+        ]
+    },
+    {
+        id: 7,
+        title: "Inter-Process Communication using Ordinary Pipes (pipe)",
+        category: "IPC - Ordinary Pipes",
+        language: "C",
+        desc: "Unidirectional IPC between related parent and child processes using the pipe() system call. Parent sends file name through pipe, child reads and displays file content.",
+        files: [
+            {
+                name: "exp7.c",
+                label: "C Source (.c)",
+                badge: "C",
+                badgeColor: "blue",
+                cmd: "gcc exp7.c -o exp7 && ./exp7",
+                id: "7",
+                curlPath: "os/7"
+            }
+        ]
+    },
+    {
+        id: 8,
+        title: "Disk Scheduling Algorithms (SSTF, SCAN, C-LOOK)",
+        category: "Disk Scheduling",
+        language: "C",
+        desc: "Implementation and comparative head movement analysis of Shortest Seek Time First (SSTF), Elevator (SCAN), and Circular LOOK (C-LOOK) disk arm scheduling.",
+        files: [
+            {
+                name: "exp8.c",
+                label: "C Source (.c)",
+                badge: "C",
+                badgeColor: "blue",
+                cmd: "gcc exp8.c -o exp8 && ./exp8",
+                id: "8",
+                curlPath: "os/8"
+            }
+        ]
+    }
+];
+
+// 1. AIML Practicals Dataset
+const aimlPracticals = [
+    { id: 1, title: "Intelligent Agents & PEAS Representation", file: "intelligent-agents-peas.pdf" },
+    { id: 2, title: "Breadth First Search (BFS) & Depth First Search (DFS)", file: "bfs-dfs.pdf" },
+    { id: 3, title: "Greedy Best-First Search & A* Search", file: "greedy-a-star.pdf" },
+    { id: 4, title: "Forward & Backward Chaining", file: "forward-backward-chaining.pdf" },
+    { id: 5, title: "Data Preprocessing", file: "data-preprocessing.pdf" },
+    { id: 6, title: "Decision Tree & Naive Bayes", file: "decision-tree-naive-bayes.pdf" },
+    { id: 7, title: "Linear Regression & Polynomial Regression", file: "linear-polynomial-regression.pdf" },
+    { id: 8, title: "Logistic Regression & K-Nearest Neighbors (KNN)", file: "logistic-regression-knn.pdf" },
+    { id: 9, title: "SVM, Random Forest & AdaBoost", file: "svm-random-forest-adaboost.pdf" },
+    { id: 10, title: "K-Means & Hierarchical Clustering", file: "kmeans-hierarchical-clustering.pdf" },
+    { id: 11, title: "Principal Component Analysis (PCA)", file: "pca.pdf" }
+];
+
+// 2. DM&SM Experiments Dataset
 const dmsmExperiments = [
     {
         id: 1,
@@ -328,96 +509,667 @@ const dmsmExperiments = [
     }
 ];
 
-// Main Dashboard route
-app.get('/', (req, res) => {
-    // 1. AIML clean practical list
-    const aimlPracticals = [
-        { title: "Intelligent Agents & PEAS Representation", file: "intelligent-agents-peas.pdf" },
-        { title: "Breadth First Search (BFS) & Depth First Search (DFS)", file: "bfs-dfs.pdf" },
-        { title: "Greedy Best-First Search & A* Search", file: "greedy-a-star.pdf" },
-        { title: "Forward & Backward Chaining", file: "forward-backward-chaining.pdf" },
-        { title: "Data Preprocessing", file: "data-preprocessing.pdf" },
-        { title: "Decision Tree & Naive Bayes", file: "decision-tree-naive-bayes.pdf" },
-        { title: "Linear Regression & Polynomial Regression", file: "linear-polynomial-regression.pdf" },
-        { title: "Logistic Regression & K-Nearest Neighbors (KNN)", file: "logistic-regression-knn.pdf" },
-        { title: "SVM, Random Forest & AdaBoost", file: "svm-random-forest-adaboost.pdf" },
-        { title: "K-Means & Hierarchical Clustering", file: "kmeans-hierarchical-clustering.pdf" },
-        { title: "Principal Component Analysis (PCA)", file: "pca.pdf" }
-    ];
+// 4. DSA Topics Dataset (Index 4)
+const dsaTopics = [
+    {
+        id: 1,
+        title: "AI Search Algorithm (BFS Maze Solver)",
+        pdf: "ai-search-algo.pdf",
+        code: "ai-search-algo.py",
+        desc: "Breadth-First Search (BFS) graph algorithm finding the shortest path in a 2D grid/maze."
+    },
+    {
+        id: 2,
+        title: "Binary Search Tree (BST)",
+        pdf: "bst.pdf",
+        code: "bst.py",
+        desc: "Binary Search Tree with insertion, deletion, and in-order, pre-order, and post-order traversals."
+    },
+    {
+        id: 3,
+        title: "Divide & Conquer (Merge Sort)",
+        pdf: "divide-conquer.pdf",
+        code: "divide-conquer-merge-sort.py",
+        desc: "Recursive divide-and-conquer sorting algorithm with guaranteed O(n log n) time complexity."
+    },
+    {
+        id: 4,
+        title: "Graph (Minimum Spanning Tree - Kruskal & Prim)",
+        pdf: "graph-mst.pdf",
+        code: "graph-mst.py",
+        desc: "Greedy graph algorithms calculating minimum spanning tree weights using Prim and Kruskal."
+    },
+    {
+        id: 5,
+        title: "Greedy Algorithm (Fractional Knapsack)",
+        pdf: "greedy-algo.pdf",
+        code: "greedy-fractional-knapsack.py",
+        desc: "Greedy choice property maximizing item value density under fixed capacity limit."
+    },
+    {
+        id: 6,
+        title: "Heap Data Structure & Heap Sort",
+        pdf: "heap.pdf",
+        code: "heap.py",
+        desc: "Binary max-heap construction, sift-down heapify, and in-place sorting routines."
+    },
+    {
+        id: 7,
+        title: "String Processing (Naive String Matching)",
+        pdf: "naive-string-matching.pdf",
+        code: "naive-string-matching.py",
+        desc: "Pattern search algorithm checking every sliding position against the target text."
+    },
+    {
+        id: null,
+        title: "Queue Data Structure",
+        pdf: "queue.pdf",
+        code: null,
+        desc: "First-In-First-Out (FIFO) linear data structure operations and applications."
+    },
+    {
+        id: null,
+        title: "Search & Sort Algorithms",
+        pdf: "search-and-sort.pdf",
+        code: null,
+        desc: "Comprehensive reference of linear/binary search and elementary sorting algorithms."
+    },
+    {
+        id: null,
+        title: "Stack Data Structure",
+        pdf: "stack.pdf",
+        code: null,
+        desc: "Last-In-First-Out (LIFO) stack operations, recursion modeling, and expression evaluation."
+    }
+];
 
-    // 2. Preload DSA Python code for 0-latency instant copy
-    const dsaDir = path.join(__dirname, 'DSA', 'files');
-    const dsaCodeFiles = {};
+// Helper to read all DSA code files
+function getDsaCodeFiles() {
+    const codeFiles = {};
     if (fs.existsSync(dsaDir)) {
         const files = fs.readdirSync(dsaDir);
         files.forEach(f => {
             if (f.endsWith('.py')) {
-                dsaCodeFiles[f] = fs.readFileSync(path.join(dsaDir, f), 'utf8');
+                codeFiles[f] = fs.readFileSync(path.join(dsaDir, f), 'utf8');
             }
         });
     }
+    return codeFiles;
+}
 
-    // 3. DBMS Markdown HTML Content
-    let dbmsHtml = '';
-    const dbmsMdPath = path.join(__dirname, 'dbms', 'dbms.md');
-    if (fs.existsSync(dbmsMdPath)) {
-        const mdText = fs.readFileSync(dbmsMdPath, 'utf8');
-        dbmsHtml = marked.parse(mdText);
+// Helper to read all OS code files
+function getOsCodeFiles() {
+    const codeFiles = {};
+    if (fs.existsSync(osDir)) {
+        const files = fs.readdirSync(osDir);
+        files.forEach(f => {
+            if (f.endsWith('.c') || f.endsWith('.sh')) {
+                codeFiles[f] = fs.readFileSync(path.join(osDir, f), 'utf8');
+            }
+        });
+    }
+    return codeFiles;
+}
+
+// Helper to read DBMS markdown
+function getDbmsText() {
+    const p = fs.existsSync(path.join(dbmsDir, 'DBMS.md'))
+        ? path.join(dbmsDir, 'DBMS.md')
+        : path.join(dbmsDir, 'dbms.md');
+    return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+}
+
+// Check if incoming request is from curl / terminal client
+function isCurlRequest(req) {
+    const ua = (req.headers['user-agent'] || '').toLowerCase();
+    const accept = (req.headers['accept'] || '').toLowerCase();
+    return req.query.format === 'text' ||
+           req.query.raw === '1' ||
+           ua.includes('curl') ||
+           ua.includes('wget') ||
+           ua.includes('httpie') ||
+           ua.includes('powershell') ||
+           (accept.includes('text/plain') && !accept.includes('text/html'));
+}
+
+// Resolution map for OS files
+const osAliasMap = {
+    '1': 'exp1.sh',
+    'exp1': 'exp1.sh',
+    'exp1.sh': 'exp1.sh',
+    '2': 'exp2.c',
+    'exp2': 'exp2.c',
+    'exp2.c': 'exp2.c',
+    '3': 'exp3.c',
+    'exp3': 'exp3.c',
+    'exp3.c': 'exp3.c',
+    '4': 'exp4.c',
+    'exp4': 'exp4.c',
+    'exp4.c': 'exp4.c',
+    '5': 'exp5.c',
+    'exp5': 'exp5.c',
+    'exp5.c': 'exp5.c',
+    '6': 'exp6_server.c',
+    '6s': 'exp6_server.c',
+    'server': 'exp6_server.c',
+    'exp6_server': 'exp6_server.c',
+    'exp6_server.c': 'exp6_server.c',
+    '6c': 'exp6_client.c',
+    'client': 'exp6_client.c',
+    'exp6_client': 'exp6_client.c',
+    'exp6_client.c': 'exp6_client.c',
+    '7': 'exp7.c',
+    'exp7': 'exp7.c',
+    'exp7.c': 'exp7.c',
+    '8': 'exp8.c',
+    'exp8': 'exp8.c',
+    'exp8.c': 'exp8.c'
+};
+
+// Resolution map for DSA files (numbers 1-7 match DSA files)
+const dsaAliasMap = {
+    '1': 'ai-search-algo.py',
+    '2': 'bst.py',
+    '3': 'divide-conquer-merge-sort.py',
+    '4': 'graph-mst.py',
+    '5': 'greedy-fractional-knapsack.py',
+    '6': 'heap.py',
+    '7': 'naive-string-matching.py',
+    'bst': 'bst.py',
+    'bst.py': 'bst.py',
+    'heap': 'heap.py',
+    'heap.py': 'heap.py',
+    'ai': 'ai-search-algo.py',
+    'ai-search': 'ai-search-algo.py',
+    'ai-search-algo.py': 'ai-search-algo.py',
+    'merge': 'divide-conquer-merge-sort.py',
+    'divide': 'divide-conquer-merge-sort.py',
+    'divide-conquer': 'divide-conquer-merge-sort.py',
+    'divide-conquer-merge-sort.py': 'divide-conquer-merge-sort.py',
+    'graph': 'graph-mst.py',
+    'mst': 'graph-mst.py',
+    'graph-mst.py': 'graph-mst.py',
+    'greedy': 'greedy-fractional-knapsack.py',
+    'knapsack': 'greedy-fractional-knapsack.py',
+    'greedy-fractional-knapsack.py': 'greedy-fractional-knapsack.py',
+    'string': 'naive-string-matching.py',
+    'naive': 'naive-string-matching.py',
+    'naive-string-matching.py': 'naive-string-matching.py'
+};
+
+// Universal code file resolver
+function resolveCodeFile(subject, query) {
+    if (!subject || !query) return null;
+    const sub = subject.toLowerCase().trim();
+    const q = query.toLowerCase().trim();
+
+    if (sub === 'os') {
+        const mapped = osAliasMap[q] || q;
+        const filePath = path.join(osDir, mapped);
+        if (fs.existsSync(filePath)) {
+            return {
+                filename: mapped,
+                content: fs.readFileSync(filePath, 'utf8'),
+                lang: mapped.endsWith('.sh') ? 'bash' : 'c',
+                subject: 'os'
+            };
+        }
+    } else if (sub === 'dsa') {
+        const mapped = dsaAliasMap[q] || q;
+        const filePath = path.join(dsaDir, mapped);
+        if (fs.existsSync(filePath) && !fs.statSync(filePath).isDirectory()) {
+            return {
+                filename: mapped,
+                content: fs.readFileSync(filePath, 'utf8'),
+                lang: 'python',
+                subject: 'dsa'
+            };
+        }
+    } else if (sub === 'dbms') {
+        const content = getDbmsText();
+        if (content) {
+            return {
+                filename: 'DBMS.md',
+                content,
+                lang: 'markdown',
+                subject: 'dbms'
+            };
+        }
+    }
+    return null;
+}
+
+// Clean helper to pad string
+function pad(str, len) {
+    str = String(str || '');
+    return str.padEnd(len, ' ');
+}
+
+// Generate OS practical list for curl
+function generateOsCurlList(req) {
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.protocol || 'http';
+    const base = `${proto}://${host}`;
+
+    let out = `[OS] AVAILABLE PRACTICAL FILES & ACCESSING IDs:\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('ID', 5)} ${pad('FILE', 18)} ${pad('CURL COMMAND', 28)} DESCRIPTION\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+
+    osPracticals.forEach(p => {
+        p.files.forEach(f => {
+            const shortDesc = p.title.replace('Shell Scripting: ', '').replace('Inter-Process Communication using ', 'IPC: ');
+            out += `${pad(f.id, 5)} ${pad(f.name, 18)} ${pad(`curl -s ${base}/${f.curlPath}`, 28)} ${shortDesc}\n`;
+        });
+    });
+
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `Fetch file: curl -s ${base}/os/<id>\n`;
+    out += `Save file:  curl -s ${base}/os/<id> > <filename>\n`;
+    out += `Run bash:   curl -s ${base}/os/1 | bash\n`;
+    return out;
+}
+
+// Generate DSA practical list for curl
+function generateDsaCurlList(req) {
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.protocol || 'http';
+    const base = `${proto}://${host}`;
+
+    let out = `[DSA] AVAILABLE PRACTICAL FILES & ACCESSING IDs:\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('ID', 5)} ${pad('FILE', 30)} ${pad('CURL COMMAND', 28)} DESCRIPTION\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+
+    dsaTopics.filter(t => t.code).forEach(t => {
+        out += `${pad(t.id, 5)} ${pad(t.code, 30)} ${pad(`curl -s ${base}/dsa/${t.id}`, 28)} ${t.title}\n`;
+    });
+
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `Fetch file: curl -s ${base}/dsa/<id>  (or curl -s ${base}/dsa/<filename>)\n`;
+    out += `Save file:  curl -s ${base}/dsa/<id> > <filename>\n`;
+    out += `Run python: curl -s ${base}/dsa/<id> | python3\n`;
+    return out;
+}
+
+// Generate DBMS practical list for curl
+function generateDbmsCurlList(req) {
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.protocol || 'http';
+    const base = `${proto}://${host}`;
+
+    let out = `[DBMS] AVAILABLE PRACTICAL FILES & ACCESSING IDs:\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('ID', 5)} ${pad('FILE', 18)} ${pad('CURL COMMAND', 28)} DESCRIPTION\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('1', 5)} ${pad('DBMS.md', 18)} ${pad(`curl -s ${base}/dbms/1`, 28)} Full Solved SQL Queries & Schema (MD)\n`;
+    out += `${pad('2', 5)} ${pad('DBMS.pdf', 18)} ${pad(`curl -s ${base}/dbms/2`, 28)} Full DBMS Practical Lab Report (PDF)\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `Fetch SQL Markdown: curl -s ${base}/dbms/1\n`;
+    out += `Download Lab PDF:   curl -s -O ${base}/dbms/2\n`;
+    return out;
+}
+
+// Generate AIML practical list for curl
+function generateAimlCurlList(req) {
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.protocol || 'http';
+    const base = `${proto}://${host}`;
+
+    let out = `[AIML] AVAILABLE PRACTICAL FILES & ACCESSING IDs:\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('ID', 5)} ${pad('FILE', 35)} ${pad('CURL COMMAND', 30)} TITLE\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+
+    aimlPracticals.forEach(p => {
+        out += `${pad(p.id, 5)} ${pad(p.file, 35)} ${pad(`curl -s -O ${base}/aiml/${p.id}`, 30)} ${p.title}\n`;
+    });
+
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `Download PDF: curl -s -O ${base}/aiml/<id>  (or curl -s -O ${base}/aiml/<filename>)\n`;
+    return out;
+}
+
+// Generate DM&SM practical list for curl
+function generateDmsmCurlList(req) {
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.protocol || 'http';
+    const base = `${proto}://${host}`;
+
+    let out = `[DM&SM] AVAILABLE EXPERIMENTS & ACCESSING IDs:\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('ID', 5)} ${pad('CURL COMMAND', 28)} EXPERIMENT TITLE\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+
+    dmsmExperiments.forEach(e => {
+        out += `${pad(e.id, 5)} ${pad(`curl -s ${base}/dmsm/${e.id}`, 28)} ${e.title}\n`;
+    });
+
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `Fetch experiment notes: curl -s ${base}/dmsm/<id>\n`;
+    return out;
+}
+
+// Generate Global Curl CheatSheet
+function generateCurlCheatSheet(req) {
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.protocol || 'http';
+    const base = `${proto}://${host}`;
+
+    let out = `PRACTICALVAULT - ALL SUBJECTS & CURL ACCESS:\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('SUBJECT', 10)} ${pad('CURL COMMAND', 28)} DESCRIPTION\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `${pad('os', 10)} ${pad(`curl -s ${base}/os`, 28)} Operating Systems (C & Bash Practicals)\n`;
+    out += `${pad('aiml', 10)} ${pad(`curl -s ${base}/aiml`, 28)} Artificial Intelligence & Machine Learning\n`;
+    out += `${pad('dbms', 10)} ${pad(`curl -s ${base}/dbms`, 28)} Database Management Systems (SQL & Schema)\n`;
+    out += `${pad('dmsm', 10)} ${pad(`curl -s ${base}/dmsm`, 28)} Digital Marketing & Social Media\n`;
+    out += `${pad('dsa', 10)} ${pad(`curl -s ${base}/dsa`, 28)} Data Structures & Algorithms (Python)\n`;
+    out += `--------------------------------------------------------------------------------\n`;
+    out += `Show files for any subject: curl -s ${base}/<subject>\n`;
+    out += `Fetch file directly by ID:  curl -s ${base}/<subject>/<id>\n`;
+    return out;
+}
+
+// ==========================================
+// CURL & TERMINAL API ROUTES
+// ==========================================
+
+// Global CLI / curl cheatsheet
+app.get(['/curl', '/terminal', '/cli', '/api/curl'], (req, res) => {
+    if (isCurlRequest(req)) {
+        return res.type('text/plain; charset=utf-8').send(generateCurlCheatSheet(req));
     }
 
-    // 4. DSA structured topic list
-    const dsaTopics = [
-        {
-            title: "AI Search Algorithm (BFS Maze Solver)",
-            pdf: "ai-search-algo.pdf",
-            code: "ai-search-algo.py"
-        },
-        {
-            title: "Binary Search Tree (BST)",
-            pdf: "bst.pdf",
-            code: "bst.py"
-        },
-        {
-            title: "Divide & Conquer (Merge Sort)",
-            pdf: "divide-conquer.pdf",
-            code: "divide-conquer-merge-sort.py"
-        },
-        {
-            title: "Graph (Minimum Spanning Tree - Kruskal & Prim)",
-            pdf: "graph-mst.pdf",
-            code: "graph-mst.py"
-        },
-        {
-            title: "Greedy Algorithm (Fractional Knapsack)",
-            pdf: "greedy-algo.pdf",
-            code: "greedy-fractional-knapsack.py"
-        },
-        {
-            title: "Heap Data Structure & Heap Sort",
-            pdf: "heap.pdf",
-            code: "heap.py"
-        },
-        {
-            title: "String Processing (Naive String Matching)",
-            pdf: "naive-string-matching.pdf",
-            code: "naive-string-matching.py"
-        },
-        {
-            title: "Queue Data Structure",
-            pdf: "queue.pdf",
-            code: null
-        },
-        {
-            title: "Search & Sort Algorithms",
-            pdf: "search-and-sort.pdf",
-            code: null
-        },
-        {
-            title: "Stack Data Structure",
-            pdf: "stack.pdf",
-            code: null
+    // If viewed in browser, render clean visual documentation page
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.protocol || 'http';
+    const base = `${proto}://${host}`;
+
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Curl API - PracticalVault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0b0f19; color: #f1f5f9; }
+        pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    </style>
+</head>
+<body class="p-4 sm:p-8 max-w-5xl mx-auto">
+    <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+        <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold mb-2">
+                ⚡ TERMINAL CURL API
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">PracticalVault via Terminal</h1>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1">Directly fetch, pipe, and compile any practical code from your command line using simple numeric IDs.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/?index=0" class="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors">
+                ← Web Vault
+            </a>
+            <a href="/curl?format=text" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition-colors">
+                Raw Text
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick instructions -->
+    <div class="mt-6 p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+        <h2 class="text-sm font-bold text-slate-200">How to use from terminal</h2>
+        <p class="text-xs text-slate-400">Run any of the following commands directly in your terminal (macOS, Linux, WSL, Git Bash, or PowerShell):</p>
+        <div class="bg-black/60 rounded-lg p-3 text-xs font-mono text-emerald-400 border border-slate-800/80 space-y-1">
+            <p><span class="text-slate-500"># Fetch and run OS Exp 1 (Student DB):</span></p>
+            <p>curl -s ${base}/os/1 > exp1.sh && bash exp1.sh</p>
+            <p class="pt-2"><span class="text-slate-500"># Fetch and compile OS Exp 2 (Process Fork/Wait):</span></p>
+            <p>curl -s ${base}/os/2 > exp2.c && gcc exp2.c -o exp2 && ./exp2</p>
+            <p class="pt-2"><span class="text-slate-500"># Run DSA Binary Search Tree in Python:</span></p>
+            <p>curl -s ${base}/dsa/2 | python3</p>
+            <p class="pt-2"><span class="text-slate-500"># List available files for any subject:</span></p>
+            <p>curl -s ${base}/os</p>
+            <p>curl -s ${base}/dsa</p>
+        </div>
+    </div>
+
+    <!-- OS Section -->
+    <div class="mt-8 space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>Operating Systems (OS) Endpoints</span>
+            <span class="text-xs font-normal text-slate-400 font-mono">/os/:id</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${osPracticals.map(p => `
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-blue-400">#${p.id} ${p.category}</span>
+                        <span class="font-mono text-slate-500 text-[11px]">${p.files.map(f => f.name).join(', ')}</span>
+                    </div>
+                    <div class="text-sm font-semibold text-slate-200">${p.title}</div>
+                    <div class="space-y-1.5 pt-1">
+                        ${p.files.map(f => `
+                            <div class="flex items-center justify-between bg-black/60 px-2.5 py-1.5 rounded text-xs font-mono border border-slate-800">
+                                <span class="text-emerald-400 truncate">curl -s ${base}/${f.curlPath}</span>
+                                <button onclick="navigator.clipboard.writeText('curl -s ${base}/${f.curlPath}'); this.textContent='✓'; setTimeout(()=>this.textContent='Copy', 1500);" class="ml-2 text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">
+                                    Copy
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+
+    <!-- DSA Section -->
+    <div class="mt-8 space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>Data Structures & Algorithms (DSA) Endpoints</span>
+            <span class="text-xs font-normal text-slate-400 font-mono">/dsa/:id</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${dsaTopics.filter(t => t.code).map(t => `
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-purple-400">#${t.id} Python Algorithm</span>
+                        <span class="font-mono text-slate-500 text-[11px]">${t.code}</span>
+                    </div>
+                    <div class="text-sm font-semibold text-slate-200">${t.title}</div>
+                    <div class="flex items-center justify-between bg-black/60 px-2.5 py-1.5 rounded text-xs font-mono border border-slate-800">
+                        <span class="text-emerald-400 truncate">curl -s ${base}/dsa/${t.id}</span>
+                        <button onclick="navigator.clipboard.writeText('curl -s ${base}/dsa/${t.id}'); this.textContent='✓'; setTimeout(()=>this.textContent='Copy', 1500);" class="ml-2 text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+
+    <div class="mt-12 text-center text-xs text-slate-500 pb-12">
+        PracticalVault • Fast curl & browser access for academic coding practicals
+    </div>
+</body>
+</html>`);
+});
+
+// OS Practical Curl Route (/os, /os/:file)
+app.get('/os', (req, res) => {
+    if (isCurlRequest(req)) {
+        return res.type('text/plain; charset=utf-8').send(generateOsCurlList(req));
+    }
+    // Browser access redirects directly to OS tab (index 0) in web dashboard
+    res.redirect('/?index=0');
+});
+
+app.get('/os/:file', (req, res) => {
+    const file = req.params.file;
+    const resolved = resolveCodeFile('os', file);
+    if (!resolved) {
+        return res.status(404).type('text/plain; charset=utf-8').send(`Error: OS Practical file '${file}' not found.\nUse 'curl -s ${req.protocol}://${req.get('host')}/os' to list all available OS files and IDs.\n`);
+    }
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(resolved.content);
+});
+
+// DSA Practical Curl Route (/dsa, /dsa/:file)
+app.get('/dsa', (req, res) => {
+    if (isCurlRequest(req)) {
+        return res.type('text/plain; charset=utf-8').send(generateDsaCurlList(req));
+    }
+    res.redirect('/?index=4');
+});
+
+app.get('/dsa/:file', (req, res) => {
+    const file = req.params.file;
+    const resolved = resolveCodeFile('dsa', file);
+    if (!resolved) {
+        return res.status(404).type('text/plain; charset=utf-8').send(`Error: DSA file '${file}' not found.\nUse 'curl -s ${req.protocol}://${req.get('host')}/dsa' to list all available DSA files and IDs.\n`);
+    }
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(resolved.content);
+});
+
+// DBMS Practical Curl Route (/dbms, /dbms/:file)
+app.get('/dbms', (req, res) => {
+    if (isCurlRequest(req)) {
+        return res.type('text/plain; charset=utf-8').send(generateDbmsCurlList(req));
+    }
+    res.redirect('/?index=2');
+});
+
+app.get('/dbms/:file', (req, res) => {
+    const file = req.params.file.toLowerCase().trim();
+    if (file === '2' || file === 'pdf' || file === 'dbms.pdf') {
+        const pdfPath = fs.existsSync(path.join(dbmsDir, 'DBMS.pdf'))
+            ? path.join(dbmsDir, 'DBMS.pdf')
+            : path.join(dbmsDir, 'dbms.pdf');
+        if (fs.existsSync(pdfPath)) {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'inline; filename="DBMS.pdf"');
+            return res.sendFile(pdfPath);
         }
-    ];
+        return res.status(404).type('text/plain').send('DBMS.pdf not found');
+    }
+    const content = getDbmsText();
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(content);
+});
+
+// AIML Curl Route (/aiml, /aiml/:id)
+app.get('/aiml', (req, res) => {
+    if (isCurlRequest(req)) {
+        return res.type('text/plain; charset=utf-8').send(generateAimlCurlList(req));
+    }
+    res.redirect('/?index=1');
+});
+
+app.get('/aiml/:id', (req, res) => {
+    const id = req.params.id.toLowerCase().trim();
+    let targetPdf = '';
+    const numericIndex = parseInt(id, 10);
+    if (!isNaN(numericIndex) && numericIndex >= 1 && numericIndex <= aimlPracticals.length) {
+        targetPdf = aimlPracticals[numericIndex - 1].file;
+    } else {
+        const found = aimlPracticals.find(p => p.file.toLowerCase() === id || p.file.toLowerCase() === id + '.pdf');
+        if (found) targetPdf = found.file;
+    }
+
+    if (!targetPdf) {
+        return res.status(404).type('text/plain').send(`Error: AIML file '${id}' not found. Use 'curl -s ${req.protocol}://${req.get('host')}/aiml' for available IDs.\n`);
+    }
+
+    const fullPath = path.join(aimlDir, targetPdf);
+    if (fs.existsSync(fullPath)) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="' + targetPdf + '"');
+        return res.sendFile(fullPath);
+    }
+    res.status(404).type('text/plain').send('PDF file not found on disk');
+});
+
+// DM&SM Curl Route (/dmsm, /dmsm/:id)
+app.get('/dmsm', (req, res) => {
+    if (isCurlRequest(req)) {
+        return res.type('text/plain; charset=utf-8').send(generateDmsmCurlList(req));
+    }
+    res.redirect('/?index=3');
+});
+
+app.get('/dmsm/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const exp = dmsmExperiments.find(e => e.id === id);
+    if (!exp) {
+        return res.status(404).type('text/plain').send(`Error: Experiment '${req.params.id}' not found. Use 'curl -s ${req.protocol}://${req.get('host')}/dmsm' for available IDs.\n`);
+    }
+
+    let out = `EXPERIMENT #${exp.id}: ${exp.title}\n`;
+    out += `Description: ${exp.desc}\n\n`;
+    out += `CONNECTED SITES:\n`;
+    exp.sites.forEach(s => out += ` - ${s.name}: ${s.url}\n`);
+    out += `\nACTIVE PLUGINS:\n`;
+    exp.plugins.forEach(p => out += ` - ${p}\n`);
+    out += `\nKEY POINTS:\n`;
+    exp.points.forEach(pt => {
+        out += ` • ${pt.replace(/<[^>]*>/g, '')}\n`;
+    });
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(out);
+});
+
+// Universal Raw Route (/raw/:subject/:file)
+app.get('/raw/:subject/:file', (req, res) => {
+    const { subject, file } = req.params;
+    const resolved = resolveCodeFile(subject, file);
+    if (!resolved) {
+        return res.status(404).type('text/plain; charset=utf-8').send(`Error: File '${file}' not found in subject '${subject}'.`);
+    }
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(resolved.content);
+});
+
+// API endpoint to retrieve code by filename
+app.get('/api/code/:subject/:filename', (req, res) => {
+    const { subject, filename } = req.params;
+    const resolved = resolveCodeFile(subject, filename);
+    if (!resolved) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+    res.json(resolved);
+});
+
+app.get('/api/code/:filename', (req, res) => {
+    const filename = path.basename(req.params.filename);
+    const osResolved = resolveCodeFile('os', filename);
+    if (osResolved) return res.json(osResolved);
+    const dsaResolved = resolveCodeFile('dsa', filename);
+    if (dsaResolved) return res.json(dsaResolved);
+    return res.status(404).json({ error: 'File not found' });
+});
+
+
+// ==========================================
+// MAIN DASHBOARD ROUTE (GET /)
+// ==========================================
+app.get('/', (req, res) => {
+    if (isCurlRequest(req)) {
+        return res.type('text/plain; charset=utf-8').send(generateCurlCheatSheet(req));
+    }
+
+    // Preload DSA Python code for 0-latency instant copy
+    const dsaCodeFiles = getDsaCodeFiles();
+
+    // Preload OS C & Bash code for 0-latency instant copy
+    const osCodeFiles = getOsCodeFiles();
+
+    // Preload DBMS Markdown HTML
+    let dbmsHtml = '';
+    const dbmsMdText = getDbmsText();
+    if (dbmsMdText) {
+        dbmsHtml = marked.parse(dbmsMdText);
+    }
 
     res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -473,18 +1225,25 @@ app.get('/', (req, res) => {
                     <h1 class="text-sm sm:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
                         PracticalVault
                         <span id="headerBadge" class="text-xs px-2 py-0.5 rounded-md font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                            AIML
+                            OS
                         </span>
                     </h1>
                 </div>
             </div>
 
-            <!-- Desktop View Selector Pills -->
-            <div class="hidden sm:flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
-                <button onclick="switchSubject(0)" id="top-tab-0" class="px-3 py-1 rounded-md transition-all font-medium">AIML</button>
-                <button onclick="switchSubject(1)" id="top-tab-1" class="px-3 py-1 rounded-md transition-all font-medium">DBMS</button>
-                <button onclick="switchSubject(2)" id="top-tab-2" class="px-3 py-1 rounded-md transition-all font-medium">DM&SM</button>
-                <button onclick="switchSubject(3)" id="top-tab-3" class="px-3 py-1 rounded-md transition-all font-medium">DSA</button>
+            <!-- Desktop View Selector Pills (OS at index 0) + Curl Button -->
+            <div class="flex items-center gap-2">
+                <div class="hidden sm:flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+                    <button onclick="switchSubject(0)" id="top-tab-0" class="px-3 py-1 rounded-md transition-all font-semibold bg-white text-blue-600 shadow-sm border border-slate-200">OS</button>
+                    <button onclick="switchSubject(1)" id="top-tab-1" class="px-3 py-1 rounded-md transition-all font-medium text-slate-500 hover:text-slate-800">AIML</button>
+                    <button onclick="switchSubject(2)" id="top-tab-2" class="px-3 py-1 rounded-md transition-all font-medium text-slate-500 hover:text-slate-800">DBMS</button>
+                    <button onclick="switchSubject(3)" id="top-tab-3" class="px-3 py-1 rounded-md transition-all font-medium text-slate-500 hover:text-slate-800">DM&SM</button>
+                    <button onclick="switchSubject(4)" id="top-tab-4" class="px-3 py-1 rounded-md transition-all font-medium text-slate-500 hover:text-slate-800">DSA</button>
+                </div>
+                <a href="/curl" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-all border border-slate-800" title="Terminal Curl API">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    <span>curl API</span>
+                </a>
             </div>
         </div>
     </header>
@@ -493,9 +1252,108 @@ app.get('/', (req, res) => {
     <main class="max-w-7xl mx-auto px-4 pt-5 pb-28">
 
         <!-- ========================================== -->
-        <!-- SUBJECT 0: AIML (Default open)             -->
+        <!-- SUBJECT 0: OS (Default open at Index 0)    -->
         <!-- ========================================== -->
         <section id="subject-0" class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-2">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                        Operating Systems (OS)
+                        <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                            C & Bash Practicals
+                        </span>
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Shell scripting, process management, synchronization, deadlocks & IPC with instant copy and curl access</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        ${osPracticals.length} Practicals (9 Files)
+                    </span>
+                    <button onclick="copyCurlCommand('curl -s ' + window.location.origin + '/os', this)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-mono font-medium transition-colors">
+                        <span>curl /os</span>
+                        <span class="text-slate-400">📋</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- OS Practicals Grid (3 cards on desktop) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                ${osPracticals.map(exp => `
+                <div class="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-sm transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-400">#${exp.id}</span>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                ${exp.category}
+                            </span>
+                        </div>
+
+                        <h3 class="text-sm font-semibold text-slate-900 mt-2">
+                            ${exp.title}
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                            ${exp.desc}
+                        </p>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 space-y-2.5">
+                        ${exp.files.map(file => `
+                            <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-mono font-bold text-slate-800 flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        ${file.name}
+                                    </span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-medium ${file.badgeColor === 'amber' ? 'bg-amber-50 text-amber-700 border border-amber-200' : (file.badgeColor === 'emerald' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (file.badgeColor === 'cyan' ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-blue-50 text-blue-700 border border-blue-200'))}">
+                                        ${file.badge}
+                                    </span>
+                                </div>
+
+                                <!-- Compile / Run command snippet -->
+                                <div class="flex items-center justify-between bg-slate-900 text-slate-200 px-2.5 py-1.5 rounded text-[11px] font-mono shadow-inner">
+                                    <span class="truncate max-w-[200px]" title="${file.cmd}">$ ${file.cmd}</span>
+                                    <button onclick="copyText('${file.cmd.replace(/'/g, "\\'")}', this, 'Copied!')" class="text-slate-400 hover:text-white ml-1 text-[11px] shrink-0 font-medium" title="Copy command">
+                                        📋 Copy
+                                    </button>
+                                </div>
+
+                                <!-- Action buttons -->
+                                <div class="flex items-center gap-1.5 pt-0.5">
+                                    <button onclick="openCodeModal('${file.name}', 'os', '${file.cmd.replace(/'/g, "\\'")}', '${file.curlPath}')"
+                                            class="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                                        Code
+                                    </button>
+
+                                    <button onclick="copyOsCode('${file.name}', this)"
+                                            class="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                        Copy
+                                    </button>
+
+                                    <a href="/files/os/${file.name}" download="${file.name}"
+                                       class="inline-flex items-center justify-center py-1.5 px-2 rounded-md bg-white hover:bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200 transition-colors shrink-0" title="Download ${file.name}">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                                    </a>
+
+                                    <button onclick="copyCurlCommand('curl -s ' + window.location.origin + '/${file.curlPath}', this)"
+                                            class="inline-flex items-center justify-center py-1.5 px-2 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-mono font-medium transition-colors shrink-0" title="Copy curl command for terminal">
+                                        curl
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                `).join('')}
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- SUBJECT 1: AIML                            -->
+        <!-- ========================================== -->
+        <section id="subject-1" class="hidden space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                     <h2 class="text-lg sm:text-xl font-bold text-slate-900">
@@ -503,9 +1361,15 @@ app.get('/', (req, res) => {
                     </h2>
                     <p class="text-xs text-slate-500 mt-0.5">11 Solved practical PDF documents</p>
                 </div>
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                    ${aimlPracticals.length} Practicals
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        ${aimlPracticals.length} Practicals
+                    </span>
+                    <button onclick="copyCurlCommand('curl -s ' + window.location.origin + '/aiml', this)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-mono font-medium transition-colors">
+                        <span>curl /aiml</span>
+                        <span class="text-slate-400">📋</span>
+                    </button>
+                </div>
             </div>
 
             <!-- 3 cards per line on desktop -->
@@ -545,16 +1409,20 @@ app.get('/', (req, res) => {
 
 
         <!-- ========================================== -->
-        <!-- SUBJECT 1: DBMS                            -->
+        <!-- SUBJECT 2: DBMS                            -->
         <!-- ========================================== -->
-        <section id="subject-1" class="hidden space-y-5">
+        <section id="subject-2" class="hidden space-y-5">
             <div class="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                     <h2 class="text-lg sm:text-xl font-bold text-slate-900">
                         Database Management Systems
                     </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Practical cheat sheet, queries & schema</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Practical cheat sheet, queries & schema with instant copy</p>
                 </div>
+                <button onclick="copyCurlCommand('curl -s ' + window.location.origin + '/dbms', this)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-mono font-medium transition-colors">
+                    <span>curl /dbms</span>
+                    <span class="text-slate-400">📋</span>
+                </button>
             </div>
 
             <!-- Quick Cards (3 on desktop) -->
@@ -569,10 +1437,10 @@ app.get('/', (req, res) => {
                         <p class="text-xs text-slate-500 mt-1">Complete solved DBMS practical queries and outputs.</p>
                     </div>
                     <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
-                        <a href="/pdf/dbms/dbms.pdf" target="_blank" class="flex-1 py-1.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium text-center transition-colors">
+                        <a href="/pdf/dbms/DBMS.pdf" target="_blank" class="flex-1 py-1.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium text-center transition-colors">
                             Open PDF
                         </a>
-                        <button onclick="previewPdf('/pdf/dbms/dbms.pdf', 'DBMS Full Solution PDF')" class="py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 transition-colors">
+                        <button onclick="previewPdf('/pdf/dbms/DBMS.pdf', 'DBMS Full Solution PDF')" class="py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 transition-colors">
                             Preview
                         </button>
                     </div>
@@ -630,9 +1498,9 @@ app.get('/', (req, res) => {
 
 
         <!-- ========================================== -->
-        <!-- SUBJECT 2: DM&SM                           -->
+        <!-- SUBJECT 3: DM&SM                           -->
         <!-- ========================================== -->
-        <section id="subject-2" class="hidden space-y-4">
+        <section id="subject-3" class="hidden space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                     <h2 class="text-lg sm:text-xl font-bold text-slate-900">
@@ -640,9 +1508,15 @@ app.get('/', (req, res) => {
                     </h2>
                     <p class="text-xs text-slate-500 mt-0.5">Experiment registry, connected marketing sites & points</p>
                 </div>
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                    ${dmsmExperiments.length} Experiments
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        ${dmsmExperiments.length} Experiments
+                    </span>
+                    <button onclick="copyCurlCommand('curl -s ' + window.location.origin + '/dmsm', this)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-mono font-medium transition-colors">
+                        <span>curl /dmsm</span>
+                        <span class="text-slate-400">📋</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Experiments Grid View (3 cards on desktop) -->
@@ -717,19 +1591,25 @@ app.get('/', (req, res) => {
 
 
         <!-- ========================================== -->
-        <!-- SUBJECT 3: DSA                             -->
+        <!-- SUBJECT 4: DSA                             -->
         <!-- ========================================== -->
-        <section id="subject-3" class="hidden space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <section id="subject-4" class="hidden space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-2">
                 <div>
                     <h2 class="text-lg sm:text-xl font-bold text-slate-900">
                         Data Structures & Algorithms
                     </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Practical algorithms with solved PDFs and copyable Python codes</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Practical algorithms with solved PDFs, copyable Python codes & curl API</p>
                 </div>
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                    ${dsaTopics.length} Topics
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        ${dsaTopics.length} Topics
+                    </span>
+                    <button onclick="copyCurlCommand('curl -s ' + window.location.origin + '/dsa', this)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-mono font-medium transition-colors">
+                        <span>curl /dsa</span>
+                        <span class="text-slate-400">📋</span>
+                    </button>
+                </div>
             </div>
 
             <!-- 3 cards per line on desktop -->
@@ -751,6 +1631,7 @@ app.get('/', (req, res) => {
                             <h3 class="text-sm font-semibold text-slate-900 mt-2">
                                 ${topic.title}
                             </h3>
+                            ${topic.desc ? `<p class="text-xs text-slate-500 mt-1 leading-relaxed">${topic.desc}</p>` : ''}
                         </div>
 
                         <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
@@ -767,7 +1648,7 @@ app.get('/', (req, res) => {
                             ` : ''}
 
                             ${hasCode ? `
-                                <button onclick="openCodeModal('${topic.code}')" 
+                                <button onclick="openCodeModal('${topic.code}', 'dsa', 'python3 ${topic.code}', 'dsa/${topic.id}')" 
                                         class="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium shadow-sm transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                                     Code
@@ -776,6 +1657,10 @@ app.get('/', (req, res) => {
                                         class="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium shadow-sm transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                                     Copy
+                                </button>
+                                <button onclick="copyCurlCommand('curl -s ' + window.location.origin + '/dsa/${topic.id}', this)" 
+                                        class="inline-flex items-center gap-1 py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-mono font-medium shadow-sm transition-colors" title="Copy curl command">
+                                    curl
                                 </button>
                             ` : ''}
                         </div>
@@ -815,18 +1700,18 @@ app.get('/', (req, res) => {
     <!-- CODE VIEWER MODAL                          -->
     <!-- ========================================== -->
     <div id="codeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-6" onclick="closeCodeModal()">
-        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
                 <div>
                     <h3 id="modalCodeTitle" class="text-sm sm:text-base font-bold text-slate-900 font-mono"></h3>
-                    <p class="text-[11px] text-slate-500">Python Implementation</p>
+                    <p id="modalCodeSub" class="text-[11px] text-slate-500 font-medium"></p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="modalCopyBtn" onclick="copyCurrentModalCode()" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg shadow-sm transition-colors">
+                    <button id="modalCopyBtn" onclick="copyCurrentModalCode()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg shadow-sm transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                         Copy Code
                     </button>
-                    <a id="modalDownloadBtn" href="#" download class="inline-flex items-center py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200" title="Download">
+                    <a id="modalDownloadBtn" href="#" download class="inline-flex items-center py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 transition-colors" title="Download">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
                     </a>
                     <button onclick="closeCodeModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200 text-lg leading-none">
@@ -835,7 +1720,23 @@ app.get('/', (req, res) => {
                 </div>
             </div>
 
-            <div class="p-4 sm:p-5 overflow-auto bg-slate-900 text-slate-100 font-mono text-xs sm:text-sm leading-relaxed flex-1">
+            <!-- Terminal Run & Curl Command Bar in Modal -->
+            <div id="modalCmdBar" class="px-5 py-2.5 bg-slate-900 text-slate-200 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800">
+                <div class="flex items-center gap-2 truncate">
+                    <span class="text-emerald-400 font-bold">$</span>
+                    <span id="modalCmdText" class="truncate text-slate-300"></span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="modalCopyCmdBtn" onclick="copyModalCmd()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-sans">
+                        Copy Run Command
+                    </button>
+                    <button id="modalCopyCurlBtn" onclick="copyModalCurl()" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-sans font-semibold">
+                        Copy curl Command
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-auto bg-slate-950 text-slate-100 font-mono text-xs sm:text-sm leading-relaxed flex-1">
                 <pre><code id="modalCodeContent" class="block whitespace-pre"></code></pre>
             </div>
         </div>
@@ -843,29 +1744,34 @@ app.get('/', (req, res) => {
 
 
     <!-- ========================================== -->
-    <!-- BOTTOM NAVIGATION BAR (White Theme)        -->
+    <!-- BOTTOM NAVIGATION BAR (OS at Tab 0)        -->
     <!-- ========================================== -->
     <nav class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 py-1.5 shadow-lg">
-        <div class="max-w-md mx-auto grid grid-cols-4 px-2 gap-1">
-            <!-- 0: AIML -->
-            <button onclick="switchSubject(0)" id="tab-0" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all">
+        <div class="max-w-md mx-auto grid grid-cols-5 px-2 gap-1">
+            <!-- 0: OS -->
+            <button onclick="switchSubject(0)" id="tab-0" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all text-blue-600 bg-blue-50 font-bold border border-blue-100">
+                <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <span class="text-[10px] font-bold">OS</span>
+            </button>
+            <!-- 1: AIML -->
+            <button onclick="switchSubject(1)" id="tab-1" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all text-slate-500 hover:text-slate-800 hover:bg-slate-50">
                 <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
-                <span class="text-[11px] font-bold">AIML</span>
+                <span class="text-[10px] font-bold">AIML</span>
             </button>
-            <!-- 1: DBMS -->
-            <button onclick="switchSubject(1)" id="tab-1" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all">
+            <!-- 2: DBMS -->
+            <button onclick="switchSubject(2)" id="tab-2" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all text-slate-500 hover:text-slate-800 hover:bg-slate-50">
                 <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                <span class="text-[11px] font-bold">DBMS</span>
+                <span class="text-[10px] font-bold">DBMS</span>
             </button>
-            <!-- 2: DM&SM -->
-            <button onclick="switchSubject(2)" id="tab-2" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all">
+            <!-- 3: DM&SM -->
+            <button onclick="switchSubject(3)" id="tab-3" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all text-slate-500 hover:text-slate-800 hover:bg-slate-50">
                 <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-                <span class="text-[11px] font-bold">DM&SM</span>
+                <span class="text-[10px] font-bold">DM&SM</span>
             </button>
-            <!-- 3: DSA -->
-            <button onclick="switchSubject(3)" id="tab-3" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all">
+            <!-- 4: DSA -->
+            <button onclick="switchSubject(4)" id="tab-4" class="tab-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all text-slate-500 hover:text-slate-800 hover:bg-slate-50">
                 <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
-                <span class="text-[11px] font-bold">DSA</span>
+                <span class="text-[10px] font-bold">DSA</span>
             </button>
         </div>
     </nav>
@@ -873,34 +1779,26 @@ app.get('/', (req, res) => {
 
     <!-- Embedded Data & Scripts -->
     <script>
-        // =========================================================================
-        // CONFIGURATION: Default open subject
-        //
-        // Which subject opens on site load depends on this single number:
-        //   0 = AIML
-        //   1 = DBMS
-        //   2 = DM&SM
-        //   3 = DSA
-        //
-        // By default, index = 0 (AIML is shown first).
-        // Change this number to 1, 2, or 3 to default to another subject!
-        // =========================================================================
+        // Default open subject is 0 = OS
         let index = 0;
 
         const subjects = [
-            { id: 0, name: "AIML", label: "AIML" },
-            { id: 1, name: "DBMS", label: "DBMS" },
-            { id: 2, name: "DM&SM", label: "DM&SM" },
-            { id: 3, name: "DSA", label: "DSA" }
+            { id: 0, name: "OS", label: "OS" },
+            { id: 1, name: "AIML", label: "AIML" },
+            { id: 2, name: "DBMS", label: "DBMS" },
+            { id: 3, name: "DM&SM", label: "DM&SM" },
+            { id: 4, name: "DSA", label: "DSA" }
         ];
 
-        // Preloaded DSA Code map for instant copy
+        // Preloaded Code Maps for 0-latency instant copy
+        const osCodeMap = ${JSON.stringify(osCodeFiles)};
         const dsaCodeMap = ${JSON.stringify(dsaCodeFiles)};
-
-        // Preloaded DM&SM Experiments
         const dmsmExperiments = ${JSON.stringify(dmsmExperiments)};
 
         let activeModalFile = '';
+        let activeModalSubject = 'os';
+        let activeModalCmd = '';
+        let activeModalCurl = '';
 
         // Switch active subject
         function switchSubject(targetIndex) {
@@ -943,7 +1841,7 @@ app.get('/', (req, res) => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Copy helper with fallback
+        // Copy helper with guaranteed clipboard fallback
         function copyText(text, btnElement, successMsg = 'Copied!') {
             const originalHtml = btnElement.innerHTML;
             if (navigator.clipboard && window.isSecureContext) {
@@ -987,27 +1885,68 @@ app.get('/', (req, res) => {
             document.body.removeChild(ta);
         }
 
-        function copyDsaCode(filename, btnElement) {
-            const code = dsaCodeMap[filename];
+        // Instant OS code copy
+        function copyOsCode(filename, btnElement) {
+            const code = osCodeMap[filename];
             if (!code) {
                 btnElement.textContent = 'Not found';
-                setTimeout(() => { btnElement.textContent = 'Copy Code'; }, 2000);
+                setTimeout(() => { btnElement.textContent = 'Copy'; }, 2000);
                 return;
             }
             copyText(code, btnElement, 'Copied!');
         }
 
+        // Instant DSA code copy
+        function copyDsaCode(filename, btnElement) {
+            const code = dsaCodeMap[filename];
+            if (!code) {
+                btnElement.textContent = 'Not found';
+                setTimeout(() => { btnElement.textContent = 'Copy'; }, 2000);
+                return;
+            }
+            copyText(code, btnElement, 'Copied!');
+        }
+
+        // Copy curl command helper
+        function copyCurlCommand(cmd, btnElement) {
+            copyText(cmd, btnElement, 'Copied curl!');
+        }
+
         // Code Modal handlers
-        function openCodeModal(filename) {
+        function openCodeModal(filename, subject = 'os', cmd = '', curlPath = '') {
             activeModalFile = filename;
-            const code = dsaCodeMap[filename] || '# File not found';
-            
+            activeModalSubject = subject;
+            activeModalCmd = cmd;
+            activeModalCurl = curlPath ? ('curl -s ' + window.location.origin + '/' + curlPath) : ('curl -s ' + window.location.origin + '/' + subject + '/' + filename);
+
+            let code = '';
+            let fileUrl = '';
+            let langLabel = 'Source Code';
+
+            if (subject === 'os') {
+                code = osCodeMap[filename] || '// File not found';
+                fileUrl = '/files/os/' + encodeURIComponent(filename);
+                langLabel = filename.endsWith('.sh') ? 'Shell Script (Bash)' : 'C Systems Program';
+            } else {
+                code = dsaCodeMap[filename] || '# File not found';
+                fileUrl = '/files/dsa/' + encodeURIComponent(filename);
+                langLabel = 'Python Implementation';
+            }
+
             document.getElementById('modalCodeTitle').textContent = filename;
+            document.getElementById('modalCodeSub').textContent = langLabel;
             document.getElementById('modalCodeContent').textContent = code;
-            
+
             const dlBtn = document.getElementById('modalDownloadBtn');
-            dlBtn.href = '/files/dsa/' + encodeURIComponent(filename);
+            dlBtn.href = fileUrl;
             dlBtn.setAttribute('download', filename);
+
+            const cmdText = document.getElementById('modalCmdText');
+            if (cmd) {
+                cmdText.textContent = cmd;
+            } else {
+                cmdText.textContent = activeModalCurl;
+            }
 
             const modal = document.getElementById('codeModal');
             modal.classList.remove('hidden');
@@ -1020,11 +1959,28 @@ app.get('/', (req, res) => {
         }
 
         function copyCurrentModalCode() {
-            const code = dsaCodeMap[activeModalFile];
+            let code = '';
+            if (activeModalSubject === 'os') {
+                code = osCodeMap[activeModalFile];
+            } else {
+                code = dsaCodeMap[activeModalFile];
+            }
             const btn = document.getElementById('modalCopyBtn');
             if (code && btn) {
-                copyText(code, btn, 'Copied!');
+                copyText(code, btn, 'Copied Code!');
             }
+        }
+
+        function copyModalCmd() {
+            if (!activeModalCmd) return;
+            const btn = document.getElementById('modalCopyCmdBtn');
+            copyText(activeModalCmd, btn, 'Copied!');
+        }
+
+        function copyModalCurl() {
+            if (!activeModalCurl) return;
+            const btn = document.getElementById('modalCopyCurlBtn');
+            copyText(activeModalCurl, btn, 'Copied curl!');
         }
 
         // PDF In-Page Preview handlers
@@ -1118,7 +2074,7 @@ app.get('/', (req, res) => {
             }
         });
 
-        // Initialize on DOM ready
+        // Initialize on DOM ready (Index 0 = OS is active)
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('index')) {
@@ -1136,8 +2092,10 @@ app.get('/', (req, res) => {
 </html>`);
 });
 
-app.listen(PORT, () => {
-    console.log(`PracticalVault Server running at http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`PracticalVault Server running at http://localhost:${PORT}`);
+    });
+}
 
 export default app;
